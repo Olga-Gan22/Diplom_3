@@ -1,0 +1,45 @@
+# Виртуальное окружение (не нужно в репозитории)
+.venv/
+venv/
+env/
+
+# Кэши Python
+__pycache__/
+*.py[cod]
+*\$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Кэши pytest
+.pytest_cache/
+
+
+
+# IDE и редакторы
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+
+# Локальные конфиги и секреты (если появятся)
+.env
+secrets.json
+config/local_settings.py
