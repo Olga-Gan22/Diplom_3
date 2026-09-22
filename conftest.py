@@ -1,5 +1,4 @@
 import allure
-import uuid
 import pytest
 
 from selenium import webdriver
@@ -12,6 +11,15 @@ from webdriver_manager.firefox import GeckoDriverManager
 from pages.main_page import MainPage
 from pages.auth_page import AuthPage
 from pages.feed_page import FeedPage
+from helpers import get_user_data
+
+
+@allure.feature("Фикстуры и управление браузером")
+@allure.description("Настройка драйверов, параметризация браузеров, базовые страницы и авторизация")
+def pytest_generate_tests(metafunc):
+    """Параметризует фикстуру driver значениями chrome и firefox."""
+    if "driver" in metafunc.fixturenames:
+        metafunc.parametrize("driver", ["chrome", "firefox"], indirect=True)
 
 
 # ------------------------------------------------------------
@@ -37,23 +45,15 @@ BROWSERS = {
 
 
 # ------------------------------------------------------------
-# Параметризация браузеров
-# ------------------------------------------------------------
-
-def pytest_generate_tests(metafunc):
-    if "driver" in metafunc.fixturenames:
-        metafunc.parametrize("driver", ["chrome", "firefox"], indirect=True)
-
-
-# ------------------------------------------------------------
-# Фикстуры (с with allure.step для логирования действий)
+# Фикстуры
 # ------------------------------------------------------------
 
 @pytest.fixture
+@allure.description("Инициализирует браузер (Chrome/Firefox), разворачивает на весь экран, корректно закрывает после теста")
 def driver(request):
     browser_name = request.param
     create_fn = BROWSERS[browser_name]
-    
+
     with allure.step(f"Запуск браузера: {browser_name}"):
         driver = create_fn()
         driver.maximize_window()
@@ -62,6 +62,7 @@ def driver(request):
 
 
 @pytest.fixture
+@allure.description("Открывает главную страницу и ждёт её полной загрузки")
 def main_page(driver):
     page = MainPage(driver)
     with allure.step("Открытие главной страницы и ожидание загрузки"):
@@ -71,44 +72,37 @@ def main_page(driver):
 
 
 @pytest.fixture
-def registered_user():
-    """Генерирует уникальные данные для регистрации пользователя."""
-    return {
-        "name": "TestUser",
-        "email": f"test_{uuid.uuid4().hex[:8]}@yandex.ru",
-        "password": "123456",
-    }
+@allure.description("Создаёт экземпляр страницы авторизации")
+def auth_page(driver):
+    return AuthPage(driver)
 
 
 @pytest.fixture
-def auth_page(driver, registered_user):
-    auth = AuthPage(driver)
-    
+@allure.description("Создаёт экземпляр страницы ленты заказов")
+def feed_page(driver):
+    return FeedPage(driver)
+
+
+@pytest.fixture
+@allure.description("Генерирует уникальные тестовые данные пользователя (name, email, password)")
+def registered_user():
+    return get_user_data()
+
+
+@pytest.fixture
+@allure.description("Регистрирует и авторизует пользователя, возвращает данные пользователя")
+def logged_in_user(auth_page, registered_user):
     with allure.step("Регистрация нового пользователя"):
-        auth.register(
+        auth_page.register(
             registered_user["name"],
             registered_user["email"],
             registered_user["password"],
         )
-    
+
     with allure.step("Авторизация пользователя"):
-        auth.login(
+        auth_page.login(
             registered_user["email"],
             registered_user["password"],
         )
-    
-    return auth
 
-
-@pytest.fixture
-def feed_main_page(driver, auth_page):
-    page = MainPage(driver)
-    with allure.step("Переход на главную страницу и ожидание загрузки (для тестов ленты)"):
-        page.open_main_page()
-        page.wait_page_loaded()
-    return page
-
-
-@pytest.fixture
-def feed_page(driver, auth_page):
-    return FeedPage(driver)
+    return registered_user

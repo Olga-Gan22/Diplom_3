@@ -1,17 +1,50 @@
-from selenium.webdriver.support.ui import WebDriverWait
-from selenium.webdriver.common.by import By
-from selenium.webdriver.support import expected_conditions as EC
+import uuid
+from faker import Faker
 
-def wait_for_order_in_work(driver, timeout=15):
+fake = Faker("ru_RU")
+
+
+def generate_name() -> str:
     """
-    Ждём, пока из списка исчезнет текст «Все текущие заказы готовы!».
-    Это самый надёжный способ: мы ждём конкретного изменения, а не «чего-то там».
+    Генерирует случайное имя пользователя на русском языке.
+    
+    Returns:
+        str: Случайное имя.
     """
-    locator = (By.CSS_SELECTOR, "ul.OrderFeed_orderListReady__1YFem")
-    text_to_disappear = "готовы"
+    return fake.first_name()
 
-    def text_disappeared(driver):
-        el = driver.find_element(*locator)
-        return text_to_disappear not in el.text.lower()
 
-    return WebDriverWait(driver, timeout).until(text_disappeared)
+def generate_email() -> str:
+    """
+    Генерирует гарантированно уникальный email для тестовых пользователей.
+    Формат: test_{8-символьный hex-идентификатор}@yandex.ru
+    
+    Returns:
+        str: Уникальный email.
+    """
+    return f"test_{uuid.uuid4().hex[:8]}@yandex.ru"
+
+
+def generate_password() -> str:
+    """
+    Возвращает фиксированный тестовый пароль.
+    Используется только в автотестах на тестовом стенде.
+    
+    Returns:
+        str: Пароль.
+    """
+    return "123456"
+
+
+def get_user_data() -> dict[str, str]:
+    """
+    Формирует готовый словарь с тестовыми данными пользователя.
+    
+    Returns:
+        dict[str, str]: Словарь с ключами: name, email, password.
+    """
+    return {
+        "name": generate_name(),
+        "email": generate_email(),
+        "password": generate_password(),
+    }
