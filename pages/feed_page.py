@@ -1,40 +1,38 @@
 import allure
-import time
+import re
 from selenium.webdriver.support.ui import WebDriverWait
-from selenium.webdriver.support import expected_conditions as EC
 
+from pages.base_page import BasePage
 from pages.locators import FeedPageLocators
-from config.urls import FEED_PAGE_URL
-from helpers import wait_for_order_in_work
+from config.urls import FEED_URL
 
 
-class FeedPage:
-    def __init__(self, driver):
-        self.driver = driver
-        self.wait = WebDriverWait(driver, 10)
+@allure.feature("Лента заказов")
+@allure.description("Страница ленты заказов: счётчики и раздел «В работе»")
+class FeedPage(BasePage):
 
     @allure.step("Открытие страницы «Лента заказов»")
     def open_feed(self):
-        self.driver.get(FEED_PAGE_URL)
-        self.wait.until(
-            EC.visibility_of_element_located(FeedPageLocators.FEED_TITLE)
-        )
+        self.open(FEED_URL)
+        self.find(FeedPageLocators.FEED_TITLE)
 
     @allure.step("Получение значения счётчика «Выполнено за всё время»")
     def get_counter_total(self):
-        el = self.wait.until(
-            EC.visibility_of_element_located(FeedPageLocators.COUNTER_TOTAL)
-        )
-        return int(el.text)
+        text = self.find(FeedPageLocators.COUNTER_TOTAL).text
+        return int(re.sub(r"\D", "", text))
 
     @allure.step("Получение значения счётчика «Выполнено за сегодня»")
     def get_counter_today(self):
-        el = self.wait.until(
-            EC.visibility_of_element_located(FeedPageLocators.COUNTER_TODAY)
-        )
-        return int(el.text)
+        text = self.find(FeedPageLocators.COUNTER_TODAY).text
+        return int(re.sub(r"\D", "", text))
 
-    @allure.step("Проверка появления заказа в разделе «В работе»")
-    def is_order_in_work(self, timeout=15):
-        wait_for_order_in_work(self.driver, timeout)
+    @allure.step("Проверка, что заказ №{order_number} отображается в разделе «В работе»")
+    def is_order_in_work(self, order_number, timeout=30):
+        target_number = f"0{order_number}"
+
+        def order_appeared(_driver):
+            items = self.find_all(FeedPageLocators.WORK_LIST_ITEM)
+            return any(item.text.strip() == target_number for item in items)
+
+        WebDriverWait(self.driver, timeout).until(order_appeared)
         return True

@@ -1,4 +1,5 @@
-
 BASE_URL = "https://stellarburgers.education-services.ru/"
 MAIN_PAGE_URL = BASE_URL
-FEED_PAGE_URL = f"{BASE_URL}feed"
+CONSTRUCTOR_URL = f"{BASE_URL}constructor"
+FEED_URL = f"{BASE_URL}feed"
+LOGIN_URL = "https://stellarburgers.education-services.ru/login"

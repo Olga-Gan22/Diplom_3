@@ -1,32 +1,31 @@
-import time
 import pytest
 import allure
 
 
 @allure.feature("Лента заказов")
+@allure.description("Тесты ленты заказов: счётчики и раздел «В работе»")
 class TestFeed:
 
     @allure.story("Счётчик «Выполнено за всё время»")
     @allure.title("Счётчик «Выполнено за всё время» увеличивается при новом заказе")
     @allure.description(
         "Проверяется, что после оформления нового заказа значение счётчика "
-        "«Выполнено за всё время» на странице ленты заказов увеличивается. "
-        "Тест фиксирует значение до, оформляет заказ, затем проверяет рост счётчика."
+        "«Выполнено за всё время» на странице ленты заказов увеличивается."
     )
-    def test_counter_total_increases(self, feed_main_page, feed_page):
-        with allure.step("Открытие ленты заказов и получение начального значения счётчика"):
+    def test_counter_total_increases(self, main_page, feed_page, logged_in_user):
+        with allure.step("Открытие ленты и фиксация начального значения счётчика"):
             feed_page.open_feed()
             counter_before = feed_page.get_counter_total()
 
-        with allure.step("Оформление нового заказа на главной странице"):
-            feed_main_page.open_main_page()
-            feed_main_page.wait_page_loaded()
-            feed_main_page.add_ingredient_to_order("Краторная булка N-200i")
-            feed_main_page.add_ingredient_to_order("Соус Spicy-X")
-            feed_main_page.submit_order()
-            feed_main_page.close_order_modal()
+        with allure.step("Оформление нового заказа"):
+            main_page.open_main_page()
+            main_page.wait_page_loaded()
+            main_page.add_ingredient_to_order("Краторная булка N-200i")
+            main_page.add_ingredient_to_order("Соус Spicy-X")
+            main_page.submit_order()
+            main_page.close_order_modal()
 
-        with allure.step("Повторное открытие ленты и проверка увеличения счётчика"):
+        with allure.step("Повторное открытие ленты и проверка роста счётчика"):
             feed_page.open_feed()
             counter_after = feed_page.get_counter_total()
 
@@ -38,24 +37,23 @@ class TestFeed:
     @allure.story("Счётчик «Выполнено за сегодня»")
     @allure.title("Счётчик «Выполнено за сегодня» увеличивается при новом заказе")
     @allure.description(
-        "Проверяется корректность работы счётчика «Выполнено за сегодня»: "
-        "после создания заказа значение должно увеличиться. Тест фиксирует начальное "
-        "значение, оформляет заказ и подтверждает рост показателя."
+        "Проверяется, что после оформления заказа значение счётчика "
+        "«Выполнено за сегодня» увеличивается."
     )
-    def test_counter_today_increases(self, feed_main_page, feed_page):
-        with allure.step("Открытие ленты и получение начального значения «Выполнено за сегодня»"):
+    def test_counter_today_increases(self, main_page, feed_page, logged_in_user):
+        with allure.step("Открытие ленты и фиксация начального значения"):
             feed_page.open_feed()
             counter_before = feed_page.get_counter_today()
 
-        with allure.step("Оформление заказа на главной странице"):
-            feed_main_page.open_main_page()
-            feed_main_page.wait_page_loaded()
-            feed_main_page.add_ingredient_to_order("Краторная булка N-200i")
-            feed_main_page.add_ingredient_to_order("Соус Spicy-X")
-            feed_main_page.submit_order()
-            feed_main_page.close_order_modal()
+        with allure.step("Оформление нового заказа"):
+            main_page.open_main_page()
+            main_page.wait_page_loaded()
+            main_page.add_ingredient_to_order("Краторная булка N-200i")
+            main_page.add_ingredient_to_order("Соус Spicy-X")
+            main_page.submit_order()
+            main_page.close_order_modal()
 
-        with allure.step("Проверка увеличения счётчика «Выполнено за сегодня»"):
+        with allure.step("Проверка роста счётчика «Выполнено за сегодня»"):
             feed_page.open_feed()
             counter_after = feed_page.get_counter_today()
 
@@ -65,32 +63,27 @@ class TestFeed:
         )
 
     @allure.story("Заказ в разделе «В работе»")
-    @allure.title("После оформления заказа он появляется в разделе «В работе»")
+    @allure.title("После оформления заказа его номер появляется в разделе «В работе»")
     @allure.description(
-        "Проверяется, что оформленный заказ отображается в разделе «В работе». "
-        "Тест создаёт заказ и убеждается, что он корректно появляется в ленте."
+        "Проверяется, что оформленный заказ отображается в разделе «В работе» ленты. "
+        "Тест запоминает номер заказа из модального окна подтверждения и ищет именно этот номер в списке."
     )
-    def test_order_in_work(self, feed_main_page, feed_page):
-        with allure.step("Оформление заказа на главной странице"):
-            feed_main_page.open_main_page()
-            feed_main_page.wait_page_loaded()
-            feed_main_page.add_ingredient_to_order("Краторная булка N-200i")
-            feed_main_page.add_ingredient_to_order("Соус Spicy-X")
-            feed_main_page.submit_order()
+    def test_order_in_work(self, main_page, feed_page, logged_in_user):
+        with allure.step("Оформление заказа и получение номера"):
+            main_page.open_main_page()
+            main_page.wait_page_loaded()
+            main_page.add_ingredient_to_order("Краторная булка N-200i")
+            main_page.add_ingredient_to_order("Соус Spicy-X")
+            order_number = main_page.submit_order()
+            assert order_number and order_number != "9999", (
+                f"Не удалось получить номер заказа: {order_number}"
+            )
 
-        allure.attach(
-            "В модальном окне подтверждения заказа отображается значение "
-            "счётчика «Выполнено за всё время», а не уникальный идентификатор заказа. "
-            "Баг на стороне бэкенда: API возвращает счётчик вместо order ID.",
-            name="Известный баг бэкенда: номер заказа = счётчик",
-            attachment_type=allure.attachment_type.TEXT,
-        )
-
-        with allure.step("Закрытие модального окна и переход на ленту заказов"):
-            feed_main_page.close_order_modal()
+        with allure.step("Закрытие модалки и переход в ленту"):
+            main_page.close_order_modal()
             feed_page.open_feed()
 
-        with allure.step("Проверка, что заказ отображается в разделе «В работе»"):
-            assert feed_page.is_order_in_work(), (
-                "Заказ не появился в разделе «В работе»"
+        with allure.step(f"Проверка, что заказ №{order_number} в разделе «В работе»"):
+            assert feed_page.is_order_in_work(order_number), (
+                f"Заказ №{order_number} не найден в разделе «В работе»"
             )

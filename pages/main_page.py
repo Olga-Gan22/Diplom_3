@@ -1,10 +1,9 @@
 import allure
-from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
-import time
 
-from pages.locators import MainPageLocators, OrderLocators
+from pages.base_page import BasePage
+from pages.locators import MainPageLocators, OrderLocators, AuthPageLocators
 from config.urls import BASE_URL
 
 
@@ -47,55 +46,41 @@ simulateDragDrop(arguments[0], arguments[1]);
 """
 
 
-class MainPage:
-    def __init__(self, driver):
-        self.driver = driver
-        self.wait = WebDriverWait(driver, 10)
-
-    # ------------------------------------------------------------
-    # Навигация и базовые методы
-    # ------------------------------------------------------------
+@allure.feature("Главная страница")
+@allure.description("Главная страница конструктора бургера: ингредиенты, модальные окна, оформление заказа")
+class MainPage(BasePage):
 
     @allure.step("Открытие главной страницы")
     def open_main_page(self):
-        self.driver.get(BASE_URL)
+        self.open(BASE_URL)
 
-    @allure.step("Получение текущего URL страницы")
-    def get_current_url(self):
-        return self.driver.current_url
+    @allure.step("Нажатие кнопки «Войти в аккаунт»")
+    def click_login_button(self):
+        self.wait_clickable(AuthPageLocators.BTN_LOGIN_MAIN).click()
+        return self
 
-    @allure.step("Переход в Конструктор")
-    def click_constructor_button(self):
-        button = self.wait.until(
-            EC.element_to_be_clickable(MainPageLocators.CONSTRUCTOR_BUTTON)
-        )
-        button.click()
+    @allure.step("Переход в конструктор из шапки")
+    def click_constructor_header_link(self):
+        self.close_modal_overlay()
+        self.wait_clickable(MainPageLocators.HEADER_CONSTRUCTOR_LINK).click()
 
-    @allure.step("Переход в Ленту заказов")
+    @allure.step("Переход в ленту заказов")
     def click_feed_button(self):
-        button = self.wait.until(
-            EC.element_to_be_clickable(MainPageLocators.FEED_BUTTON)
-        )
-        button.click()
-
-    # ------------------------------------------------------------
-    # Модальное окно ингредиента
-    # ------------------------------------------------------------
+        self.close_modal_overlay()
+        self.click(MainPageLocators.FEED_BUTTON)
 
     @allure.step("Клик по ингредиенту: {name}")
     def click_ingredient_by_name(self, name):
+        self.close_modal_overlay()
         locator = (
             MainPageLocators.INGREDIENT_BY_NAME[0],
             MainPageLocators.INGREDIENT_BY_NAME[1].format(name=name),
         )
-        ingredient = self.wait.until(EC.element_to_be_clickable(locator))
-        ingredient.click()
+        self.click(locator)
 
     @allure.step("Проверка, что модальное окно открыто")
     def is_modal_opened(self):
-        self.wait.until(
-            EC.visibility_of_element_located(MainPageLocators.MODAL_OPENED)
-        )
+        self.find(MainPageLocators.MODAL_OPENED)
         return True
 
     @allure.step("Проверка, что модальное окно закрыто")
@@ -107,21 +92,11 @@ class MainPage:
 
     @allure.step("Получение заголовка модального окна")
     def get_modal_title_text(self):
-        title = self.wait.until(
-            EC.visibility_of_element_located(MainPageLocators.MODAL_TITLE)
-        )
-        return title.text
+        return self.get_text(MainPageLocators.MODAL_TITLE)
 
     @allure.step("Закрытие модального окна кнопкой «крестик»")
     def close_modal(self):
-        close_btn = self.wait.until(
-            EC.element_to_be_clickable(MainPageLocators.MODAL_CLOSE_BUTTON)
-        )
-        close_btn.click()
-
-    # ------------------------------------------------------------
-    # Счётчик ингредиента
-    # ------------------------------------------------------------
+        self.click(MainPageLocators.MODAL_CLOSE_BUTTON)
 
     @allure.step("Получение количества ингредиента: {name}")
     def get_ingredient_counter(self, name):
@@ -129,12 +104,7 @@ class MainPage:
             MainPageLocators.INGREDIENT_COUNTER[0],
             MainPageLocators.INGREDIENT_COUNTER[1].format(name=name),
         )
-        counter = self.wait.until(EC.visibility_of_element_located(locator))
-        return int(counter.text)
-
-    # ------------------------------------------------------------
-    # Drag-and-drop
-    # ------------------------------------------------------------
+        return int(self.get_text(locator))
 
     @allure.step("Добавление ингредиента в заказ: {name} (через drag-and-drop)")
     def add_ingredient_to_order(self, name):
@@ -142,64 +112,33 @@ class MainPage:
             MainPageLocators.INGREDIENT_BY_NAME[0],
             MainPageLocators.INGREDIENT_BY_NAME[1].format(name=name),
         )
-
-        source = self.wait.until(EC.visibility_of_element_located(ingredient_locator))
-        target = self.wait.until(
-            EC.visibility_of_element_located(MainPageLocators.CONSTRUCTOR_BASKET_LIST)
-        )
-
-        self.driver.execute_script(
-            "arguments[0].scrollIntoView({block: 'center', behavior: 'auto'});", target
-        )
-        time.sleep(0.5)
-
-        self.driver.execute_script(DRAG_DROP_SCRIPT, source, target)
-
-    # ------------------------------------------------------------
-    # Ожидание загрузки
-    # ------------------------------------------------------------
+        source = self.find(ingredient_locator)
+        target = self.find(MainPageLocators.CONSTRUCTOR_BASKET_LIST)
+        self.scroll_to(MainPageLocators.CONSTRUCTOR_BASKET_LIST)
+        self.execute_script(DRAG_DROP_SCRIPT, source, target)
 
     @allure.step("Ожидание полной загрузки страницы")
     def wait_page_loaded(self):
-        self.wait.until(
-            EC.visibility_of_element_located(MainPageLocators.INGREDIENTS_LIST)
-        )
-
-    # ------------------------------------------------------------
-    # Оформление заказа
-    # ------------------------------------------------------------
+        self.find(MainPageLocators.INGREDIENT_ITEM)
 
     @allure.step("Оформление заказа (нажатие «Оформить заказ» и ожидание номера)")
     def submit_order(self):
-        # Даём React время «увидеть» ингредиент в корзине
-        time.sleep(2)
-
-        btn = self.wait.until(
-            EC.element_to_be_clickable(OrderLocators.BTN_ORDER)
-        )
-        btn.click()
-
-        # Ждём появления модалки
+        self.click_via_js(OrderLocators.BTN_ORDER)
+        self.find(OrderLocators.ORDER_MODAL)
         self.wait.until(
-            EC.visibility_of_element_located(OrderLocators.ORDER_MODAL)
+            lambda d: d.find_element(*OrderLocators.ORDER_NUMBER).text.strip() not in ("", "9999")
         )
+        order_number = self.get_text(OrderLocators.ORDER_NUMBER)
+        return order_number
 
-        # Ждём, пока номер сменится с заглушки '9999' на реальный
-        def number_is_real(driver):
-            el = driver.find_element(*OrderLocators.ORDER_NUMBER)
-            text = el.text.strip()
-            return text and text != "9999"
 
-        real_number = WebDriverWait(self.driver, 20).until(number_is_real)
-        return real_number
+    @allure.step("Получение номера заказа из модального окна подтверждения")
+    def get_order_number_from_modal(self):
+        return self.get_text(OrderLocators.ORDER_NUMBER)
 
     @allure.step("Закрытие модального окна подтверждения заказа")
     def close_order_modal(self):
-        """Закрывает модалку с подтверждением заказа через JS-клик."""
-        btn = self.wait.until(
-            EC.element_to_be_clickable(OrderLocators.ORDER_CLOSE_BUTTON)
-        )
-        self.driver.execute_script("arguments[0].click();", btn)
+        self.click_via_js(OrderLocators.ORDER_CLOSE_BUTTON)
         self.wait.until(
             EC.invisibility_of_element_located(OrderLocators.ORDER_MODAL)
         )
