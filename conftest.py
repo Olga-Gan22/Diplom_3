@@ -11,7 +11,7 @@ from webdriver_manager.firefox import GeckoDriverManager
 from pages.main_page import MainPage
 from pages.auth_page import AuthPage
 from pages.feed_page import FeedPage
-from helpers import get_user_data
+from utils.generators import get_user_data
 
 
 @allure.feature("Фикстуры и управление браузером")

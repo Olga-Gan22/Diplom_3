@@ -1,6 +1,4 @@
 import allure
-from selenium.webdriver.support.ui import WebDriverWait
-from selenium.webdriver.support import expected_conditions as EC
 
 from pages.base_page import BasePage
 from pages.locators import MainPageLocators, OrderLocators, AuthPageLocators
@@ -85,9 +83,7 @@ class MainPage(BasePage):
 
     @allure.step("Проверка, что модальное окно закрыто")
     def is_modal_closed(self):
-        self.wait.until(
-            EC.invisibility_of_element_located(MainPageLocators.MODAL_OPENED)
-        )
+        self.wait_invisible(MainPageLocators.MODAL_OPENED)
         return True
 
     @allure.step("Получение заголовка модального окна")
@@ -125,12 +121,12 @@ class MainPage(BasePage):
     def submit_order(self):
         self.click_via_js(OrderLocators.BTN_ORDER)
         self.find(OrderLocators.ORDER_MODAL)
-        self.wait.until(
-            lambda d: d.find_element(*OrderLocators.ORDER_NUMBER).text.strip() not in ("", "9999")
+        self.wait_until(
+            lambda d: d.find_element(*OrderLocators.ORDER_NUMBER).text.strip() not in ("", "9999"),
+            condition_name="появился номер заказа в модальном окне"
         )
         order_number = self.get_text(OrderLocators.ORDER_NUMBER)
         return order_number
-
 
     @allure.step("Получение номера заказа из модального окна подтверждения")
     def get_order_number_from_modal(self):
@@ -139,6 +135,4 @@ class MainPage(BasePage):
     @allure.step("Закрытие модального окна подтверждения заказа")
     def close_order_modal(self):
         self.click_via_js(OrderLocators.ORDER_CLOSE_BUTTON)
-        self.wait.until(
-            EC.invisibility_of_element_located(OrderLocators.ORDER_MODAL)
-        )
+        self.wait_invisible(OrderLocators.ORDER_MODAL)

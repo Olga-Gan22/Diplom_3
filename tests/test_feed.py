@@ -1,5 +1,6 @@
 import pytest
 import allure
+from utils.helpers import create_order_for_feed_tests
 
 
 @allure.feature("Лента заказов")
@@ -17,13 +18,8 @@ class TestFeed:
             feed_page.open_feed()
             counter_before = feed_page.get_counter_total()
 
-        with allure.step("Оформление нового заказа"):
-            main_page.open_main_page()
-            main_page.wait_page_loaded()
-            main_page.add_ingredient_to_order("Краторная булка N-200i")
-            main_page.add_ingredient_to_order("Соус Spicy-X")
-            main_page.submit_order()
-            main_page.close_order_modal()
+        with allure.step("Оформление нового заказа (через хелпер)"):
+            create_order_for_feed_tests(main_page.driver)
 
         with allure.step("Повторное открытие ленты и проверка роста счётчика"):
             feed_page.open_feed()
@@ -45,13 +41,8 @@ class TestFeed:
             feed_page.open_feed()
             counter_before = feed_page.get_counter_today()
 
-        with allure.step("Оформление нового заказа"):
-            main_page.open_main_page()
-            main_page.wait_page_loaded()
-            main_page.add_ingredient_to_order("Краторная булка N-200i")
-            main_page.add_ingredient_to_order("Соус Spicy-X")
-            main_page.submit_order()
-            main_page.close_order_modal()
+        with allure.step("Оформление нового заказа (через хелпер)"):
+            create_order_for_feed_tests(main_page.driver)
 
         with allure.step("Проверка роста счётчика «Выполнено за сегодня»"):
             feed_page.open_feed()
@@ -70,20 +61,14 @@ class TestFeed:
     )
     def test_order_in_work(self, main_page, feed_page, logged_in_user):
         with allure.step("Оформление заказа и получение номера"):
-            main_page.open_main_page()
-            main_page.wait_page_loaded()
-            main_page.add_ingredient_to_order("Краторная булка N-200i")
-            main_page.add_ingredient_to_order("Соус Spicy-X")
-            order_number = main_page.submit_order()
+            order_number = create_order_for_feed_tests(main_page.driver)
             assert order_number and order_number != "9999", (
                 f"Не удалось получить номер заказа: {order_number}"
             )
 
-        with allure.step("Закрытие модалки и переход в ленту"):
-            main_page.close_order_modal()
+        with allure.step("Переход в ленту и проверка наличия заказа"):
             feed_page.open_feed()
 
-        with allure.step(f"Проверка, что заказ №{order_number} в разделе «В работе»"):
             assert feed_page.is_order_in_work(order_number), (
                 f"Заказ №{order_number} не найден в разделе «В работе»"
             )

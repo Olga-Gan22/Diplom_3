@@ -75,3 +75,13 @@ class BasePage:
     def click_via_js(self, locator):
         element = self.wait_clickable(locator)
         self.driver.execute_script("arguments[0].click();", element)
+
+    @allure.step("Ожидание, что элемент невидим: {locator}")
+    def wait_invisible(self, locator):
+        """Ждёт, пока элемент станет невидимым или исчезнет из DOM"""
+        return self.wait.until(EC.invisibility_of_element_located(locator))
+
+    @allure.step("Ожидание выполнения условия: {condition_name}")
+    def wait_until(self, condition, condition_name="условие"):
+        """Универсальное ожидание по кастомному условию"""
+        return self.wait.until(condition)
